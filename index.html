@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>C.A.L.M. Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #fff;
+      color: #1a1a1a;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+    
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+    
+    /* Navigation */
+    .nav-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .nav-btn {
+      width: 32px;
+      height: 32px;
+      border: 1px solid #e0e0e0;
+      background: #fff;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    
+    .nav-btn:hover { background: #f5f5f5; }
+    
+    .date-input {
+      padding: 6px 12px;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    .today-btn {
+      padding: 6px 16px;
+      border: none;
+      background: transparent;
+      font-size: 14px;
+      cursor: pointer;
+      color: #666;
+    }
+    
+    .today-btn:hover { color: #1a1a1a; }
+    
+    .view-tabs {
+      display: flex;
+      gap: 4px;
+      background: #f5f5f5;
+      padding: 4px;
+      border-radius: 8px;
+    }
+    
+    .view-tab {
+      padding: 8px 16px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #666;
+      transition: all 0.2s;
+    }
+    
+    .view-tab.active {
+      background: #1a1a1a;
+      color: #fff;
+    }
+    
+    .date-range {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 16px;
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 200px 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 20px;
+    }
+    
+    @media (max-width: 900px) {
+      .stats-grid { grid-template-columns: 1fr; }
+    }
+    
+    .stat-box h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #1a1a1a;
+    }
+    
+    .stat-box .subtitle {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 4px;
+    }
+    
+    .stat-box .big-number {
+      font-size: 48px;
+      font-weight: 700;
+      color: #1a1a1a;
+      line-height: 1;
+    }
+    
+    .stat-box .unit {
+      font-size: 13px;
+      color: #888;
+      margin-top: 4px;
+    }
+    
+    .chart-box {
+      position: relative;
+      height: 180px;
+    }
+    
+    .donut-container {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    
+    .donut-chart {
+      width: 140px;
+      height: 140px;
+    }
+    
+    .donut-legend {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+    
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    
+    .legend-dot.priority { background: #f97316; }
+    .legend-dot.personal { background: #8b5cf6; }
+    .legend-dot.mvt { background: #ef4444; }
+    .legend-dot.recharge { background: #22c55e; }
+    
+    /* Summary Cards */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    
+    @media (max-width: 768px) {
+      .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    
+    @media (max-width: 480px) {
+      .summary-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    }
+    
+    .summary-card {
+      padding: 16px;
+      border-radius: 12px;
+    }
+    
+    .summary-card.mvt { background: #fef2f2; }
+    .summary-card.priority { background: #fff7ed; }
+    .summary-card.personal { background: #faf5ff; }
+    .summary-card.recharge { background: #f0fdf4; }
+    
+    .summary-label { font-size: 12px; margin-bottom: 4px; font-weight: 500; }
+    .summary-label.mvt { color: #ef4444; }
+    .summary-label.priority { color: #f97316; }
+    .summary-label.personal { color: #8b5cf6; }
+    .summary-label.recharge { color: #22c55e; }
+    
+    .summary-value { font-size: 28px; font-weight: 700; color: #1a1a1a; }
+    
+    .summary-percent { font-size: 12px; margin-top: 4px; }
+    .summary-percent.mvt { color: #ef4444; }
+    .summary-percent.priority { color: #f97316; }
+    .summary-percent.personal { color: #8b5cf6; }
+    .summary-percent.recharge { color: #22c55e; }
+    
+    .summary-desc { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+    
+    /* Calendar Section */
+    .calendar-section {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #e5e5e5;
+    }
+    
+    .calendar-section h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #374151;
+    }
+    
+    .calendar-container {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid #e5e5e5;
+      overflow: hidden;
+    }
+    
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: 60px repeat(7, 1fr);
+    }
+    
+    .calendar-header-cell {
+      padding: 6px 4px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 11px;
+      background: #f9fafb;
+      color: #374151;
+      border-bottom: 1px solid #e5e5e5;
+    }
+    
+    .calendar-header-cell:first-child {
+      border-right: 1px solid #e5e5e5;
+    }
+    
+    .calendar-header-cell.today {
+      background: #3b82f6;
+      color: #fff;
+    }
+    
+    .calendar-header-cell .day-name { display: block; }
+    .calendar-header-cell .day-num { display: block; font-size: 14px; margin-top: 1px; }
+    
+    .calendar-scroll {
+      display: grid;
+      grid-template-columns: 60px repeat(7, 1fr);
+      max-height: 280px;
+      overflow-y: auto;
+    }
+    
+    .time-column {
+      border-right: 1px solid #e5e5e5;
+    }
+    
+    .time-label {
+      height: 28px;
+      padding: 2px 8px;
+      text-align: right;
+      font-size: 10px;
+      color: #9ca3af;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .day-column {
+      position: relative;
+      border-right: 1px solid #f3f4f6;
+    }
+    
+    .day-column:last-child { border-right: none; }
+    
+    .hour-row {
+      height: 28px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .task-block {
+      position: absolute;
+      left: 1px;
+      right: 1px;
+      border-radius: 3px;
+      padding: 2px 4px;
+      font-size: 9px;
+      font-weight: 500;
+      overflow: hidden;
+      cursor: pointer;
+      z-index: 10;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    
+    .task-block:hover {
+      transform: scale(1.02);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+      z-index: 20;
+    }
+    
+    .task-block.mvt { background: #fecaca; border-left: 3px solid #ef4444; color: #991b1b; }
+    .task-block.priority { background: #fed7aa; border-left: 3px solid #f97316; color: #9a3412; }
+    .task-block.personal { background: #ddd6fe; border-left: 3px solid #8b5cf6; color: #5b21b6; }
+    .task-block.recharge { background: #bbf7d0; border-left: 3px solid #22c55e; color: #166534; }
+    
+    .task-block.completed { opacity: 0.6; }
+    .task-block.completed .task-title { text-decoration: line-through; }
+    
+    .task-title {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .task-time {
+      font-size: 8px;
+      opacity: 0.8;
+      margin-top: 1px;
+    }
+    
+    .current-time-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #ef4444;
+      z-index: 30;
+    }
+    
+    .current-time-line::before {
+      content: '';
+      position: absolute;
+      left: -4px;
+      top: -4px;
+      width: 10px;
+      height: 10px;
+      background: #ef4444;
+      border-radius: 50%;
+    }
+    
+    /* Scrollbar */
+    .calendar-scroll::-webkit-scrollbar { width: 6px; }
+    .calendar-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
+    .calendar-scroll::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+    
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+      .container { padding: 12px; }
+      h1 { font-size: 22px; }
+      .nav-bar { flex-direction: column; align-items: stretch; }
+      .nav-left { justify-content: center; }
+      .view-tabs { justify-content: center; }
+      .stats-grid { grid-template-columns: 1fr; gap: 16px; }
+      .donut-container { flex-direction: column; align-items: flex-start; }
+      .calendar-container { overflow-x: auto; }
+      .calendar-grid, .calendar-scroll { min-width: 700px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>C.A.L.M. Dashboard</h1>
+    
+    <div class="nav-bar">
+      <div class="nav-left">
+        <button class="nav-btn" id="prevBtn">&lt;</button>
+        <input type="date" class="date-input" id="dateInput">
+        <button class="nav-btn" id="nextBtn">&gt;</button>
+        <button class="today-btn" id="todayBtn">Днес</button>
+      </div>
+      <div class="view-tabs">
+        <button class="view-tab" data-view="day">Ден</button>
+        <button class="view-tab active" data-view="week">Седмица</button>
+        <button class="view-tab" data-view="month">Месец</button>
+        <button class="view-tab" data-view="year">Година</button>
+      </div>
+    </div>
+    
+    <div class="date-range" id="dateRange">08.12 — 14.12</div>
+    
+    <div class="stats-grid">
+      <div class="stat-box">
+        <h3>Какво свърших</h3>
+        <div class="subtitle">Deep Work</div>
+        <div class="big-number" id="totalHours">0.0</div>
+        <div class="unit">часа тази седмица</div>
+      </div>
+      
+      <div class="stat-box">
+        <h3>Дневна продуктивност</h3>
+        <div class="chart-box">
+          <canvas id="barChart"></canvas>
+        </div>
+      </div>
+      
+      <div class="stat-box">
+        <h3>Разпределение на времето</h3>
+        <div class="donut-container">
+          <div class="donut-chart">
+            <canvas id="donutChart"></canvas>
+          </div>
+          <div class="donut-legend" id="donutLegend"></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="summary-grid">
+      <div class="summary-card mvt">
+        <div class="summary-label mvt">● MVT</div>
+        <div class="summary-value" id="mvtHours">0.0ч</div>
+        <div class="summary-percent mvt" id="mvtPercent">0% от времето</div>
+        <div class="summary-desc">Най-важните задачи</div>
+      </div>
+      <div class="summary-card priority">
+        <div class="summary-label priority">● Priority</div>
+        <div class="summary-value" id="priorityHours">0.0ч</div>
+        <div class="summary-percent priority" id="priorityPercent">0% от времето</div>
+        <div class="summary-desc">Приоритетни задачи</div>
+      </div>
+      <div class="summary-card personal">
+        <div class="summary-label personal">● Personal</div>
+        <div class="summary-value" id="personalHours">0.0ч</div>
+        <div class="summary-percent personal" id="personalPercent">0% от времето</div>
+        <div class="summary-desc">Лични ангажименти</div>
+      </div>
+      <div class="summary-card recharge">
+        <div class="summary-label recharge">● Recharge</div>
+        <div class="summary-value" id="rechargeHours">0.0ч</div>
+        <div class="summary-percent recharge" id="rechargePercent">0% от времето</div>
+        <div class="summary-desc">Почивка & енергия</div>
+      </div>
+    </div>
+    
+    <div class="calendar-section">
+      <h3>📅 Седмичен календар</h3>
+      <div class="calendar-container" id="calendarContainer"></div>
+    </div>
+  </div>
+
+  <script>
+    const START_HOUR = 6;
+    const END_HOUR = 22;
+    const HOUR_HEIGHT = 28;
+    
+    const COLORS = {
+      MVT: '#ef4444',
+      Priority: '#f97316',
+      Personal: '#8b5cf6',
+      Recharge: '#22c55e'
+    };
+    
+    let currentDate = new Date();
+    let currentViewMode = 'week';
+    let barChart = null;
+    let donutChart = null;
+    let tasksData = [];
+    let weekDates = [];
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      const hash = window.location.hash.slice(1);
+      if (hash && /^\d{4}-\d{2}-\d{2}$/.test(hash)) {
+        currentDate = new Date(hash + 'T12:00:00');
+      }
+      document.getElementById('dateInput').value = currentDate.toISOString().split('T')[0];
+      setupEventListeners();
+      loadData();
+    });
+    
+    function setupEventListeners() {
+      document.getElementById('prevBtn').addEventListener('click', () => navigate(-7));
+      document.getElementById('nextBtn').addEventListener('click', () => navigate(7));
+      document.getElementById('todayBtn').addEventListener('click', () => {
+        currentDate = new Date();
+        document.getElementById('dateInput').value = currentDate.toISOString().split('T')[0];
+        window.location.hash = currentDate.toISOString().split('T')[0];
+        loadData();
+      });
+      
+      document.getElementById('dateInput').addEventListener('change', (e) => {
+        currentDate = new Date(e.target.value + 'T12:00:00');
+        window.location.hash = e.target.value;
+        loadData();
+      });
+      
+      document.querySelectorAll('.view-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          currentViewMode = tab.dataset.view;
+          loadData();
+        });
+      });
+    }
+    
+    function navigate(days) {
+      currentDate.setDate(currentDate.getDate() + days);
+      const dateStr = currentDate.toISOString().split('T')[0];
+      document.getElementById('dateInput').value = dateStr;
+      window.location.hash = dateStr;
+      loadData();
+    }
+    
+    function getWeekDates(date) {
+      const d = new Date(date);
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(d.setDate(diff));
+      
+      const dates = [];
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(monday);
+        date.setDate(monday.getDate() + i);
+        dates.push(date.toISOString().split('T')[0]);
+      }
+      return dates;
+    }
+    
+    async function loadData() {
+      weekDates = getWeekDates(currentDate);
+      const startDate = weekDates[0];
+      const endDate = weekDates[6];
+      
+      // Update date range display
+      const startD = new Date(startDate);
+      const endD = new Date(endDate);
+      document.getElementById('dateRange').textContent = 
+        `${String(startD.getDate()).padStart(2, '0')}.${String(startD.getMonth() + 1).padStart(2, '0')} — ${String(endD.getDate()).padStart(2, '0')}.${String(endD.getMonth() + 1).padStart(2, '0')}`;
+      
+      try {
+        const response = await fetch(`/api/notion-data?start=${startDate}&end=${endDate}&view=${currentViewMode}&all=true`);
+        const result = await response.json();
+        
+        if (result.error) {
+          console.error('API Error:', result.error);
+          return;
+        }
+        
+        tasksData = result.tasks || [];
+        updateUI(result);
+        renderCalendar();
+      } catch (error) {
+        console.error('Fetch error:', error);
+      }
+    }
+    
+    function updateUI(data) {
+      const totals = data.totals || { MVT: 0, Priority: 0, Personal: 0, Recharge: 0 };
+      const total = totals.MVT + totals.Priority + totals.Personal + totals.Recharge;
+      
+      // Total hours
+      document.getElementById('totalHours').textContent = total.toFixed(1);
+      
+      // Summary cards
+      document.getElementById('mvtHours').textContent = totals.MVT.toFixed(1) + 'ч';
+      document.getElementById('priorityHours').textContent = totals.Priority.toFixed(1) + 'ч';
+      document.getElementById('personalHours').textContent = totals.Personal.toFixed(1) + 'ч';
+      document.getElementById('rechargeHours').textContent = totals.Recharge.toFixed(1) + 'ч';
+      
+      if (total > 0) {
+        document.getElementById('mvtPercent').textContent = Math.round(totals.MVT / total * 100) + '% от времето';
+        document.getElementById('priorityPercent').textContent = Math.round(totals.Priority / total * 100) + '% от времето';
+        document.getElementById('personalPercent').textContent = Math.round(totals.Personal / total * 100) + '% от времето';
+        document.getElementById('rechargePercent').textContent = Math.round(totals.Recharge / total * 100) + '% от времето';
+      }
+      
+      updateBarChart(data.chartData || []);
+      updateDonutChart(totals);
+    }
+    
+    function updateBarChart(chartData) {
+      const ctx = document.getElementById('barChart').getContext('2d');
+      if (barChart) barChart.destroy();
+      
+      const labels = ['Пон', 'Вт', 'Ср', 'Чет', 'Пет', 'Съб', 'Нед'];
+      
+      barChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: 'MVT', data: chartData.map(d => d.MVT || 0), backgroundColor: COLORS.MVT },
+            { label: 'Priority', data: chartData.map(d => d.Priority || 0), backgroundColor: COLORS.Priority },
+            { label: 'Personal', data: chartData.map(d => d.Personal || 0), backgroundColor: COLORS.Personal },
+            { label: 'Recharge', data: chartData.map(d => d.Recharge || 0), backgroundColor: COLORS.Recharge }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { stacked: true, grid: { display: false } },
+            y: { stacked: true, beginAtZero: true, ticks: { callback: v => v + 'ч' } }
+          }
+        }
+      });
+    }
+    
+    function updateDonutChart(totals) {
+      const ctx = document.getElementById('donutChart').getContext('2d');
+      if (donutChart) donutChart.destroy();
+      
+      const total = totals.MVT + totals.Priority + totals.Personal + totals.Recharge;
+      const data = [totals.MVT, totals.Priority, totals.Personal, totals.Recharge];
+      const colors = [COLORS.MVT, COLORS.Priority, COLORS.Personal, COLORS.Recharge];
+      const labels = ['MVT', 'Priority', 'Personal', 'Recharge'];
+      
+      donutChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            backgroundColor: colors,
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          cutout: '65%',
+          plugins: { legend: { display: false } }
+        }
+      });
+      
+      // Update legend
+      const legendEl = document.getElementById('donutLegend');
+      legendEl.innerHTML = labels
+        .map((label, i) => {
+          const pct = total > 0 ? Math.round(data[i] / total * 100) : 0;
+          if (pct === 0) return '';
+          return `<div class="legend-item">
+            <span class="legend-dot ${label.toLowerCase()}"></span>
+            <span>${label} <strong>${pct}%</strong></span>
+          </div>`;
+        })
+        .filter(Boolean)
+        .join('');
+    }
+    
+    function renderCalendar() {
+      const container = document.getElementById('calendarContainer');
+      const today = new Date().toISOString().split('T')[0];
+      const dayNames = ['Пон', 'Вт', 'Ср', 'Чет', 'Пет', 'Съб', 'Нед'];
+      
+      // Build header
+      let headerHtml = '<div class="calendar-header-cell"></div>';
+      weekDates.forEach((dateStr, i) => {
+        const d = new Date(dateStr + 'T12:00:00');
+        const isToday = dateStr === today;
+        headerHtml += `<div class="calendar-header-cell ${isToday ? 'today' : ''}">
+          <span class="day-name">${dayNames[i]}</span>
+          <span class="day-num">${d.getDate()}</span>
+        </div>`;
+      });
+      
+      // Build time column
+      let timeHtml = '';
+      for (let h = START_HOUR; h < END_HOUR; h++) {
+        timeHtml += `<div class="time-label">${String(h).padStart(2, '0')}:00</div>`;
+      }
+      
+      // Build day columns
+      let daysHtml = weekDates.map(dateStr => {
+        let slots = '';
+        for (let h = START_HOUR; h < END_HOUR; h++) {
+          slots += `<div class="hour-row"></div>`;
+        }
+        return `<div class="day-column" data-date="${dateStr}">${slots}</div>`;
+      }).join('');
+      
+      container.innerHTML = `
+        <div class="calendar-grid">${headerHtml}</div>
+        <div class="calendar-scroll">
+          <div class="time-column">${timeHtml}</div>
+          ${daysHtml}
+        </div>
+      `;
+      
+      // Place tasks
+      tasksData.forEach(task => placeTask(task));
+      
+      // Current time indicator
+      const now = new Date();
+      const currentHour = now.getHours() + now.getMinutes() / 60;
+      if (currentHour >= START_HOUR && currentHour < END_HOUR) {
+        const todayCol = container.querySelector(`.day-column[data-date="${today}"]`);
+        if (todayCol) {
+          const line = document.createElement('div');
+          line.className = 'current-time-line';
+          line.style.top = `${(currentHour - START_HOUR) * HOUR_HEIGHT}px`;
+          todayCol.appendChild(line);
+        }
+      }
+      
+      // Scroll to current time
+      const scrollContainer = container.querySelector('.calendar-scroll');
+      const scrollTo = Math.max(0, (now.getHours() - START_HOUR - 2)) * HOUR_HEIGHT;
+      scrollContainer.scrollTop = scrollTo;
+    }
+    
+    function placeTask(task) {
+      if (!task.date || !task.start || !task.end) return;
+      
+      const col = document.querySelector(`.day-column[data-date="${task.date}"]`);
+      if (!col) return;
+      
+      const [sh, sm] = task.start.split(':').map(Number);
+      const [eh, em] = task.end.split(':').map(Number);
+      const startHour = sh + sm / 60;
+      const endHour = eh + em / 60;
+      
+      if (endHour <= START_HOUR || startHour >= END_HOUR) return;
+      
+      const visStart = Math.max(startHour, START_HOUR);
+      const visEnd = Math.min(endHour, END_HOUR);
+      
+      const top = (visStart - START_HOUR) * HOUR_HEIGHT;
+      const height = Math.max((visEnd - visStart) * HOUR_HEIGHT, 20);
+      
+      const category = (task.category || 'personal').toLowerCase();
+      const isCompleted = task.status === 'Completed';
+      
+      const block = document.createElement('div');
+      block.className = `task-block ${category} ${isCompleted ? 'completed' : ''}`;
+      block.style.top = `${top}px`;
+      block.style.height = `${height}px`;
+      block.innerHTML = `
+        <div class="task-title">${task.title || 'Без име'}</div>
+        ${height > 30 ? `<div class="task-time">${task.start} - ${task.end}</div>` : ''}
+      `;
+      
+      if (task.url) {
+        block.addEventListener('click', () => window.open(task.url, '_blank'));
+      }
+      
+      col.appendChild(block);
+    }
+  </script>
+</body>
+</html>
