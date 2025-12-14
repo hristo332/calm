@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>C.A.L.M. Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #fff;
+      color: #1a1a1a;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 12px 16px;
+    }
+    
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    
+    /* Navigation */
+    .nav-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .nav-btn {
+      width: 28px;
+      height: 28px;
+      border: 1px solid #e0e0e0;
+      background: #fff;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    
+    .nav-btn:hover { background: #f5f5f5; }
+    
+    .date-input {
+      padding: 4px 10px;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    
+    .today-btn {
+      padding: 4px 12px;
+      border: none;
+      background: transparent;
+      font-size: 13px;
+      cursor: pointer;
+      color: #666;
+    }
+    
+    .today-btn:hover { color: #1a1a1a; }
+    
+    .view-tabs {
+      display: flex;
+      gap: 2px;
+      background: #f5f5f5;
+      padding: 3px;
+      border-radius: 6px;
+    }
+    
+    .view-tab {
+      padding: 5px 12px;
+      border: none;
+      background: transparent;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      color: #666;
+      transition: all 0.2s;
+    }
+    
+    .view-tab.active {
+      background: #1a1a1a;
+      color: #fff;
+    }
+    
+    .date-range {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 10px;
+    }
+    
+    /* Stats Grid - 4 columns now */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 140px 1fr 1fr 140px;
+      gap: 16px;
+      margin-bottom: 12px;
+      align-items: start;
+    }
+    
+    @media (max-width: 1000px) {
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+    }
+    
+    @media (max-width: 600px) {
+      .stats-grid { grid-template-columns: 1fr; }
+    }
+    
+    .stat-box h3 {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #1a1a1a;
+    }
+    
+    .stat-box .subtitle {
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 2px;
+    }
+    
+    .stat-box .big-number {
+      font-size: 36px;
+      font-weight: 700;
+      color: #1a1a1a;
+      line-height: 1;
+    }
+    
+    .stat-box .unit {
+      font-size: 11px;
+      color: #888;
+      margin-top: 2px;
+    }
+    
+    .chart-box {
+      position: relative;
+      height: 140px;
+    }
+    
+    .donut-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .donut-chart {
+      width: 100px;
+      height: 100px;
+    }
+    
+    .donut-legend {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+    }
+    
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    
+    .legend-dot.priority { background: #f97316; }
+    .legend-dot.personal { background: #8b5cf6; }
+    .legend-dot.mvt { background: #ef4444; }
+    .legend-dot.recharge { background: #22c55e; }
+    .legend-dot.media { background: #3b82f6; }
+    .legend-dot.meeting { background: #eab308; }
+    
+    /* Box Breathing Widget */
+    .breathing-widget {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .breathing-widget h3 {
+      font-size: 11px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #1a1a1a;
+      text-align: center;
+    }
+    
+    .breathing-circle {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+      border: 3px solid #0ea5e9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+    }
+    
+    .breathing-circle:hover {
+      box-shadow: 0 4px 20px rgba(14, 165, 233, 0.3);
+    }
+    
+    .breathing-circle.active {
+      animation: none;
+    }
+    
+    .breathing-circle.inhale {
+      transform: scale(1.15);
+      background: linear-gradient(135deg, #bbf7d0 0%, #86efac 100%);
+      border-color: #22c55e;
+    }
+    
+    .breathing-circle.hold {
+      transform: scale(1.15);
+      background: linear-gradient(135deg, #fef08a 0%, #fde047 100%);
+      border-color: #eab308;
+    }
+    
+    .breathing-circle.exhale {
+      transform: scale(1);
+      background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
+      border-color: #ef4444;
+    }
+    
+    .lungs-svg {
+      width: 50px;
+      height: 50px;
+      transition: transform 0.5s ease;
+    }
+    
+    .breathing-circle.inhale .lungs-svg {
+      transform: scale(1.2);
+    }
+    
+    .breathing-circle.exhale .lungs-svg {
+      transform: scale(0.85);
+    }
+    
+    .breathing-info {
+      text-align: center;
+      margin-top: 6px;
+    }
+    
+    .breathing-phase {
+      font-size: 11px;
+      font-weight: 600;
+      color: #666;
+      height: 14px;
+    }
+    
+    .breathing-timer {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0ea5e9;
+    }
+    
+    .breathing-cycles {
+      font-size: 10px;
+      color: #888;
+      margin-top: 2px;
+    }
+    
+    /* Summary Cards - 6 columns */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+    }
+    
+    @media (max-width: 900px) {
+      .summary-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    
+    @media (max-width: 500px) {
+      .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    
+    .summary-card {
+      padding: 10px;
+      border-radius: 8px;
+    }
+    
+    .summary-card.mvt { background: #fef2f2; }
+    .summary-card.priority { background: #fff7ed; }
+    .summary-card.personal { background: #faf5ff; }
+    .summary-card.recharge { background: #f0fdf4; }
+    .summary-card.media { background: #eff6ff; }
+    .summary-card.meeting { background: #fefce8; }
+    
+    .summary-label { font-size: 11px; margin-bottom: 2px; font-weight: 500; }
+    .summary-label.mvt { color: #ef4444; }
+    .summary-label.priority { color: #f97316; }
+    .summary-label.personal { color: #8b5cf6; }
+    .summary-label.recharge { color: #22c55e; }
+    .summary-label.media { color: #3b82f6; }
+    .summary-label.meeting { color: #eab308; }
+    
+    .summary-value { font-size: 20px; font-weight: 700; color: #1a1a1a; }
+    
+    .summary-percent { font-size: 10px; margin-top: 2px; }
+    .summary-percent.mvt { color: #ef4444; }
+    .summary-percent.priority { color: #f97316; }
+    .summary-percent.personal { color: #8b5cf6; }
+    .summary-percent.recharge { color: #22c55e; }
+    .summary-percent.media { color: #3b82f6; }
+    .summary-percent.meeting { color: #eab308; }
+    
+    .summary-desc { font-size: 9px; color: #9ca3af; margin-top: 1px; }
+    
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+      .container { padding: 10px; }
+      h1 { font-size: 20px; }
+      .nav-bar { flex-direction: column; align-items: stretch; }
+      .nav-left { justify-content: center; }
+      .view-tabs { justify-content: center; }
+      .stats-grid { grid-template-columns: 1fr; gap: 12px; }
+      .donut-container { flex-direction: column; align-items: flex-start; }
+      .breathing-circle { width: 80px; height: 80px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>C.A.L.M. Dashboard</h1>
+    
+    <div class="nav-bar">
+      <div class="nav-left">
+        <button class="nav-btn" id="prevBtn">&lt;</button>
+        <input type="date" class="date-input" id="dateInput">
+        <button class="nav-btn" id="nextBtn">&gt;</button>
+        <button class="today-btn" id="todayBtn">Днес</button>
+      </div>
+      <div class="view-tabs">
+        <button class="view-tab" data-view="day">Ден</button>
+        <button class="view-tab active" data-view="week">Седмица</button>
+        <button class="view-tab" data-view="month">Месец</button>
+        <button class="view-tab" data-view="year">Година</button>
+      </div>
+    </div>
+    
+    <div class="date-range" id="dateRange">08.12 — 14.12</div>
+    
+    <!-- Stats Grid: Total | Bar Chart | Donut | Breathing -->
+    <div class="stats-grid">
+      <div class="stat-box">
+        <h3>Какво свърших</h3>
+        <div class="subtitle">Deep Work</div>
+        <div class="big-number" id="totalHours">0.0</div>
+        <div class="unit">часа тази седмица</div>
+      </div>
+      
+      <div class="stat-box">
+        <h3>Дневна продуктивност</h3>
+        <div class="chart-box">
+          <canvas id="barChart"></canvas>
+        </div>
+      </div>
+      
+      <div class="stat-box">
+        <h3>Разпределение на времето</h3>
+        <div class="donut-container">
+          <div class="donut-chart">
+            <canvas id="donutChart"></canvas>
+          </div>
+          <div class="donut-legend" id="donutLegend"></div>
+        </div>
+      </div>
+      
+      <!-- Box Breathing Widget -->
+      <div class="breathing-widget">
+        <h3>Box Breathing</h3>
+        <div class="breathing-circle" id="breathingCircle">
+          <svg class="lungs-svg" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Trachea -->
+            <path d="M32 8 L32 24" stroke="#0ea5e9" stroke-width="4" stroke-linecap="round"/>
+            <!-- Left lung -->
+            <path d="M28 24 Q16 26 14 38 Q12 50 22 54 Q28 56 30 48 L30 28 Q30 24 28 24" 
+                  fill="#bae6fd" stroke="#0ea5e9" stroke-width="2"/>
+            <!-- Right lung -->
+            <path d="M36 24 Q48 26 50 38 Q52 50 42 54 Q36 56 34 48 L34 28 Q34 24 36 24" 
+                  fill="#bae6fd" stroke="#0ea5e9" stroke-width="2"/>
+            <!-- Bronchi -->
+            <path d="M32 24 L28 28 M32 24 L36 28" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="breathing-info">
+          <div class="breathing-phase" id="breathingPhase">Кликни за старт</div>
+          <div class="breathing-timer" id="breathingTimer">4-4-4-4</div>
+          <div class="breathing-cycles" id="breathingCycles"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Summary Cards - 6 categories -->
+    <div class="summary-grid">
+      <div class="summary-card mvt">
+        <div class="summary-label mvt">● MVT</div>
+        <div class="summary-value" id="mvtHours">0.0ч</div>
+        <div class="summary-percent mvt" id="mvtPercent">0%</div>
+        <div class="summary-desc">Най-важните задачи</div>
+      </div>
+      <div class="summary-card priority">
+        <div class="summary-label priority">● Priority</div>
+        <div class="summary-value" id="priorityHours">0.0ч</div>
+        <div class="summary-percent priority" id="priorityPercent">0%</div>
+        <div class="summary-desc">Приоритетни задачи</div>
+      </div>
+      <div class="summary-card personal">
+        <div class="summary-label personal">● Personal</div>
+        <div class="summary-value" id="personalHours">0.0ч</div>
+        <div class="summary-percent personal" id="personalPercent">0%</div>
+        <div class="summary-desc">Лични ангажименти</div>
+      </div>
+      <div class="summary-card recharge">
+        <div class="summary-label recharge">● Recharge</div>
+        <div class="summary-value" id="rechargeHours">0.0ч</div>
+        <div class="summary-percent recharge" id="rechargePercent">0%</div>
+        <div class="summary-desc">Почивка & енергия</div>
+      </div>
+      <div class="summary-card media">
+        <div class="summary-label media">● Media</div>
+        <div class="summary-value" id="mediaHours">0.0ч</div>
+        <div class="summary-percent media" id="mediaPercent">0%</div>
+        <div class="summary-desc">Медия & съдържание</div>
+      </div>
+      <div class="summary-card meeting">
+        <div class="summary-label meeting">● Meeting</div>
+        <div class="summary-value" id="meetingHours">0.0ч</div>
+        <div class="summary-percent meeting" id="meetingPercent">0%</div>
+        <div class="summary-desc">Срещи & разговори</div>
+      </div>
+    </div>
+    
+  </div>
+
+  <script>
+    const COLORS = {
+      MVT: '#ef4444',
+      Priority: '#f97316',
+      Personal: '#8b5cf6',
+      Recharge: '#22c55e',
+      Media: '#3b82f6',
+      Meeting: '#eab308'
+    };
+    
+    let currentDate = new Date();
+    let currentViewMode = 'week';
+    let barChart = null;
+    let donutChart = null;
+    let weekDates = [];
+    
+    // Box Breathing State
+    let breathingActive = false;
+    let breathingInterval = null;
+    let breathingPhase = 0; // 0=inhale, 1=hold1, 2=exhale, 3=hold2
+    let breathingCount = 4;
+    let breathingCycles = 0;
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      const hash = window.location.hash.slice(1);
+      if (hash && /^\d{4}-\d{2}-\d{2}$/.test(hash)) {
+        currentDate = new Date(hash + 'T12:00:00');
+      }
+      document.getElementById('dateInput').value = currentDate.toISOString().split('T')[0];
+      setupEventListeners();
+      loadData();
+    });
+    
+    function setupEventListeners() {
+      document.getElementById('prevBtn').addEventListener('click', () => navigate(-1));
+      document.getElementById('nextBtn').addEventListener('click', () => navigate(1));
+      document.getElementById('todayBtn').addEventListener('click', () => {
+        currentDate = new Date();
+        document.getElementById('dateInput').value = currentDate.toISOString().split('T')[0];
+        window.location.hash = currentDate.toISOString().split('T')[0];
+        loadData();
+      });
+      
+      document.getElementById('dateInput').addEventListener('change', (e) => {
+        currentDate = new Date(e.target.value + 'T12:00:00');
+        window.location.hash = e.target.value;
+        loadData();
+      });
+      
+      document.querySelectorAll('.view-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          currentViewMode = tab.dataset.view;
+          loadData();
+        });
+      });
+      
+      // Box Breathing
+      document.getElementById('breathingCircle').addEventListener('click', toggleBreathing);
+    }
+    
+    // ===== BOX BREATHING FUNCTIONS =====
+    function toggleBreathing() {
+      if (breathingActive) {
+        stopBreathing();
+      } else {
+        startBreathing();
+      }
+    }
+    
+    function startBreathing() {
+      breathingActive = true;
+      breathingPhase = 0;
+      breathingCount = 4;
+      breathingCycles = 0;
+      updateBreathingUI();
+      
+      breathingInterval = setInterval(() => {
+        breathingCount--;
+        
+        if (breathingCount <= 0) {
+          breathingPhase = (breathingPhase + 1) % 4;
+          breathingCount = 4;
+          
+          // Complete cycle after hold2
+          if (breathingPhase === 0) {
+            breathingCycles++;
+          }
+        }
+        
+        updateBreathingUI();
+      }, 1000);
+    }
+    
+    function stopBreathing() {
+      breathingActive = false;
+      clearInterval(breathingInterval);
+      breathingInterval = null;
+      
+      const circle = document.getElementById('breathingCircle');
+      circle.classList.remove('inhale', 'hold', 'exhale', 'active');
+      
+      document.getElementById('breathingPhase').textContent = 'Кликни за старт';
+      document.getElementById('breathingTimer').textContent = '4-4-4-4';
+      document.getElementById('breathingCycles').textContent = breathingCycles > 0 ? `Завършени: ${breathingCycles} цикъла` : '';
+    }
+    
+    function updateBreathingUI() {
+      const circle = document.getElementById('breathingCircle');
+      const phaseEl = document.getElementById('breathingPhase');
+      const timerEl = document.getElementById('breathingTimer');
+      const cyclesEl = document.getElementById('breathingCycles');
+      
+      circle.classList.remove('inhale', 'hold', 'exhale');
+      circle.classList.add('active');
+      
+      const phases = [
+        { name: 'Вдишай', class: 'inhale' },
+        { name: 'Задръж', class: 'hold' },
+        { name: 'Издишай', class: 'exhale' },
+        { name: 'Задръж', class: 'hold' }
+      ];
+      
+      const current = phases[breathingPhase];
+      circle.classList.add(current.class);
+      phaseEl.textContent = current.name;
+      timerEl.textContent = breathingCount;
+      cyclesEl.textContent = breathingCycles > 0 ? `Цикли: ${breathingCycles}` : '';
+    }
+    
+    // ===== NAVIGATION =====
+    function navigate(direction) {
+      switch (currentViewMode) {
+        case 'day':
+          currentDate.setDate(currentDate.getDate() + direction);
+          break;
+        case 'week':
+          currentDate.setDate(currentDate.getDate() + (direction * 7));
+          break;
+        case 'month':
+          currentDate.setMonth(currentDate.getMonth() + direction);
+          break;
+        case 'year':
+          currentDate.setFullYear(currentDate.getFullYear() + direction);
+          break;
+      }
+      const dateStr = currentDate.toISOString().split('T')[0];
+      document.getElementById('dateInput').value = dateStr;
+      window.location.hash = dateStr;
+      loadData();
+    }
+    
+    function getWeekDates(date) {
+      const d = new Date(date);
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(d.setDate(diff));
+      
+      const dates = [];
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(monday);
+        date.setDate(monday.getDate() + i);
+        dates.push(date.toISOString().split('T')[0]);
+      }
+      return dates;
+    }
+    
+    async function loadData() {
+      let startDate, endDate, rangeText;
+      const d = new Date(currentDate);
+      
+      switch (currentViewMode) {
+        case 'day':
+          startDate = endDate = d.toISOString().split('T')[0];
+          rangeText = `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
+          weekDates = [startDate];
+          break;
+        case 'week':
+          weekDates = getWeekDates(currentDate);
+          startDate = weekDates[0];
+          endDate = weekDates[6];
+          const startD = new Date(startDate);
+          const endD = new Date(endDate);
+          rangeText = `${String(startD.getDate()).padStart(2, '0')}.${String(startD.getMonth() + 1).padStart(2, '0')} — ${String(endD.getDate()).padStart(2, '0')}.${String(endD.getMonth() + 1).padStart(2, '0')}`;
+          break;
+        case 'month':
+          const monthStart = new Date(d.getFullYear(), d.getMonth(), 1);
+          const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+          startDate = monthStart.toISOString().split('T')[0];
+          endDate = monthEnd.toISOString().split('T')[0];
+          const monthNames = ['Януари', 'Февруари', 'Март', 'Април', 'Май', 'Юни', 'Юли', 'Август', 'Септември', 'Октомври', 'Ноември', 'Декември'];
+          rangeText = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+          weekDates = [];
+          break;
+        case 'year':
+          startDate = `${d.getFullYear()}-01-01`;
+          endDate = `${d.getFullYear()}-12-31`;
+          rangeText = `${d.getFullYear()}`;
+          weekDates = [];
+          break;
+      }
+      
+      document.getElementById('dateRange').textContent = rangeText;
+      
+      try {
+        const dateParam = currentDate.toISOString().split('T')[0];
+        const response = await fetch(`/api/notion-data?date=${dateParam}&period=${currentViewMode}&all=true`);
+        const result = await response.json();
+        
+        if (result.error) {
+          console.error('API Error:', result.error);
+          return;
+        }
+        
+        updateUI(result);
+      } catch (error) {
+        console.error('Fetch error:', error);
+      }
+    }
+    
+    function updateUI(data) {
+      const totals = data.totals || { MVT: 0, Priority: 0, Personal: 0, Recharge: 0, Media: 0, Meeting: 0 };
+      const total = totals.MVT + totals.Priority + totals.Personal + totals.Recharge + totals.Media + totals.Meeting;
+      
+      // Total hours
+      document.getElementById('totalHours').textContent = total.toFixed(1);
+      
+      // Summary cards
+      const categories = ['mvt', 'priority', 'personal', 'recharge', 'media', 'meeting'];
+      const catKeys = ['MVT', 'Priority', 'Personal', 'Recharge', 'Media', 'Meeting'];
+      
+      catKeys.forEach((key, i) => {
+        const cat = categories[i];
+        document.getElementById(`${cat}Hours`).textContent = (totals[key] || 0).toFixed(1) + 'ч';
+        document.getElementById(`${cat}Percent`).textContent = total > 0 
+          ? Math.round((totals[key] || 0) / total * 100) + '%' 
+          : '0%';
+      });
+      
+      updateBarChart(data.chartData || []);
+      updateDonutChart(totals);
+    }
+    
+    function updateBarChart(chartData) {
+      const ctx = document.getElementById('barChart').getContext('2d');
+      if (barChart) barChart.destroy();
+      
+      const labels = chartData.map(d => d.label);
+      
+      barChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: 'MVT', data: chartData.map(d => d.MVT || 0), backgroundColor: COLORS.MVT },
+            { label: 'Priority', data: chartData.map(d => d.Priority || 0), backgroundColor: COLORS.Priority },
+            { label: 'Personal', data: chartData.map(d => d.Personal || 0), backgroundColor: COLORS.Personal },
+            { label: 'Recharge', data: chartData.map(d => d.Recharge || 0), backgroundColor: COLORS.Recharge },
+            { label: 'Media', data: chartData.map(d => d.Media || 0), backgroundColor: COLORS.Media },
+            { label: 'Meeting', data: chartData.map(d => d.Meeting || 0), backgroundColor: COLORS.Meeting }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { stacked: true, grid: { display: false } },
+            y: { stacked: true, beginAtZero: true, ticks: { callback: v => v + 'ч' } }
+          }
+        }
+      });
+    }
+    
+    function updateDonutChart(totals) {
+      const ctx = document.getElementById('donutChart').getContext('2d');
+      if (donutChart) donutChart.destroy();
+      
+      const total = totals.MVT + totals.Priority + totals.Personal + totals.Recharge + totals.Media + totals.Meeting;
+      const data = [totals.MVT, totals.Priority, totals.Personal, totals.Recharge, totals.Media, totals.Meeting];
+      const colors = [COLORS.MVT, COLORS.Priority, COLORS.Personal, COLORS.Recharge, COLORS.Media, COLORS.Meeting];
+      const labels = ['MVT', 'Priority', 'Personal', 'Recharge', 'Media', 'Meeting'];
+      
+      donutChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            backgroundColor: colors,
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          cutout: '60%',
+          plugins: { legend: { display: false } }
+        }
+      });
+      
+      // Update legend - only show non-zero
+      const legendEl = document.getElementById('donutLegend');
+      legendEl.innerHTML = labels
+        .map((label, i) => {
+          const pct = total > 0 ? Math.round(data[i] / total * 100) : 0;
+          if (pct === 0) return '';
+          return `<div class="legend-item">
+            <span class="legend-dot ${label.toLowerCase()}"></span>
+            <span>${label} <strong>${pct}%</strong></span>
+          </div>`;
+        })
+        .filter(Boolean)
+        .join('');
+    }
+  </script>
+</body>
+</html>
